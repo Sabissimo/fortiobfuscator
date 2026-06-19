@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-06-19
+
+### Added
+- **"External IPs only" option** (`Options.public_ips_only`): obfuscate only
+  public IPs and keep local/LAN addresses (RFC1918, loopback, link-local, ULA).
+  Exposed as the `--public-ips-only` CLI flag and an "external IPs only" checkbox
+  in the web UI. "Local" is defined by explicit network lists, narrower than
+  `ipaddress.is_private` (which also flags documentation ranges).
+
 ## [1.0.0] — 2026-06-19
 
 Initial release.

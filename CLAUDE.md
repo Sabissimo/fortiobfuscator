@@ -112,5 +112,5 @@ see [docs/EXTENDING.md](docs/EXTENDING.md). Short version: add a `Category` to
 
 ## Status
 
-v1.0.0 — all 21 tests passing; CLI + web UI verified end-to-end.
+v1.1.0 — all 23 tests passing; CLI + web UI verified end-to-end.
 Repo: https://github.com/Sabissimo/fortiobfuscator

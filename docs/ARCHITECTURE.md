@@ -116,6 +116,14 @@ never enter `name_map`, so they're never replaced); disabled types skip their
 pass-2 step. The CLI derives these from `--no-<key>` flags; the web form derives
 them from checkbox presence.
 
+`Options.public_ips_only` is a modifier on the IPv4/IPv6 steps: when set, an
+address that is local/LAN is left untouched and only public addresses are
+mapped. "Local" is defined by explicit network lists (`_LOCAL_V4_NETS` /
+`_LOCAL_V6_NETS`: RFC1918, loopback, link-local, ULA) rather than
+`ipaddress.is_private`, which also flags documentation/benchmark ranges that a
+user typically *does* want scrubbed. Exposed as `--public-ips-only` (CLI) and the
+"external IPs only" checkbox (web).
+
 ## Output & mapping file
 
 `Result(text, report, mapping)`. When `emit_mapping` is set, `mapping` is a dict
