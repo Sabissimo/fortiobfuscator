@@ -54,8 +54,14 @@ def do_obfuscate():
     types = {k for k in ALL_TYPE_KEYS if request.form.get(f"type_{k}")}
     cats = {k for k in ALL_CATEGORY_KEYS if request.form.get(f"cat_{k}")}
     emit_mapping = bool(request.form.get("emit_mapping"))
+    public_ips_only = bool(request.form.get("public_ips_only"))
 
-    options = Options(types=types, categories=cats, emit_mapping=emit_mapping)
+    options = Options(
+        types=types,
+        categories=cats,
+        emit_mapping=emit_mapping,
+        public_ips_only=public_ips_only,
+    )
     result = obfuscate(text, options)
 
     base = os.path.splitext(os.path.basename(upload.filename))[0] or "config"

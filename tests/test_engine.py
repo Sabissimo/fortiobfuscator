@@ -165,6 +165,27 @@ def test_disable_ipv4_leaves_ips(sample_text):
     assert "203.0.113.10" in res.text
 
 
+def test_public_ips_only_keeps_private(sample_text):
+    opts = Options.all_enabled()
+    opts.public_ips_only = True
+    res = obfuscate(sample_text, opts)
+    text = res.text
+    # private / local addresses preserved
+    assert "10.10.10.1" in text
+    assert "10.20.0.1" in text
+    assert "10.10.10.0" in text
+    # public addresses still obfuscated
+    assert "203.0.113.10" not in text
+    assert "198.51.100.5" not in text
+    assert "198.51.100.200" not in text
+
+
+def test_public_ips_only_default_off(sample_text):
+    res = obfuscate(sample_text, Options.all_enabled())
+    # default behaviour still scrubs private IPs
+    assert "10.10.10.1" not in res.text
+
+
 def test_disable_address_category_leaves_names(sample_text):
     opts = Options.all_enabled()
     opts.categories.discard("address")

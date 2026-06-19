@@ -25,6 +25,9 @@ class Options:
     types: set[str] = field(default_factory=lambda: set(ALL_TYPE_KEYS))
     categories: set[str] = field(default_factory=lambda: set(ALL_CATEGORY_KEYS))
     emit_mapping: bool = False
+    # When True, only public (external) IPs are obfuscated; private/local
+    # addresses (RFC1918, loopback, link-local, ULA) are left as-is.
+    public_ips_only: bool = False
 
     @classmethod
     def all_enabled(cls, emit_mapping: bool = False) -> "Options":
@@ -47,6 +50,26 @@ class Result:
 # --------------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------------- #
+
+
+# "Local" = LAN-style addresses a user typically wants to keep when only
+# scrubbing external IPs. Deliberately narrower than ipaddress.is_private, which
+# also flags documentation/benchmark ranges.
+_LOCAL_V4_NETS = tuple(
+    ipaddress.ip_network(n)
+    for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8", "169.254.0.0/16")
+)
+_LOCAL_V6_NETS = tuple(
+    ipaddress.ip_network(n) for n in ("::1/128", "fc00::/7", "fe80::/10")
+)
+
+
+def _is_local_ipv4(addr: ipaddress.IPv4Address) -> bool:
+    return any(addr in net for net in _LOCAL_V4_NETS)
+
+
+def _is_local_ipv6(addr: ipaddress.IPv6Address) -> bool:
+    return any(addr in net for net in _LOCAL_V6_NETS)
 
 
 def _is_netmask_or_zero(addr: str) -> bool:
@@ -118,6 +141,8 @@ def obfuscate(text: str, options: Options | None = None) -> Result:
                 return token  # not a real IPv6 (e.g. a MAC) — leave alone
             if int(addr) == 0:  # :: (unspecified)
                 return token
+            if options.public_ips_only and _is_local_ipv6(addr):
+                return token  # keep local addresses
             bump("ipv6")
             return ipv6_store.get(token, mp.ipv6_replacement)
 
@@ -128,6 +153,12 @@ def obfuscate(text: str, options: Options | None = None) -> Result:
             token = m.group(0)
             if _is_netmask_or_zero(token):
                 return token
+            if options.public_ips_only:
+                try:
+                    if _is_local_ipv4(ipaddress.IPv4Address(token)):
+                        return token  # keep RFC1918 / loopback / link-local
+                except ipaddress.AddressValueError:
+                    return token
             bump("ipv4")
             return ipv4_store.get(token, mp.ipv4_replacement)
 

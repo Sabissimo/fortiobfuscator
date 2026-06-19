@@ -80,6 +80,10 @@ value mints a deterministic replacement; repeats reuse it. All stores +
   IP (e.g. `edit "10.0.0.0"`) is handled as a name, not split by the IP regex.
 - **IPv4 substitution skips subnet masks and `0.0.0.0`** via
   `engine._is_netmask_or_zero`. Don't "fix" this — masks must survive.
+- **`Options.public_ips_only`** keeps local addresses (RFC1918, loopback,
+  link-local, ULA — see `engine._is_local_ipv4/_is_local_ipv6`) and scrubs only
+  public IPs. "Local" is defined by explicit network lists, narrower than
+  `ipaddress.is_private` (which also flags documentation ranges).
 - **IPv6 regex is deliberately broad** and validated with `ipaddress`. A MAC has
   6 colon-groups → invalid IPv6 → skipped, so MACs are never mis-typed as IPv6.
 - **Reserved/default names** (e.g. `port1`, `wan1`, `all`, `ALL`) live in

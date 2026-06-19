@@ -72,7 +72,9 @@ Every item below is an independent toggle in both the UI and the CLI.
 **Values (global, consistent)**
 
 - **IPv4 / IPv6** — every address (unicast, multicast, private, ranges) →
-  consistent fakes. Subnet masks and `0.0.0.0` are left intact.
+  consistent fakes. Subnet masks and `0.0.0.0` are left intact. An optional
+  **"external IPs only"** mode keeps local/LAN addresses (RFC1918, loopback,
+  link-local, ULA) and scrubs only the public ones.
 - **FQDN / Wildcard-FQDN** — `set fqdn` / `set wildcard-fqdn` → fake domains
   (the leading `*.` is kept).
 - **MAC** — every MAC → a consistent locally-administered fake.
@@ -93,8 +95,10 @@ reserved names — `port1`, `wan1`, `dmz`, `all`, `any`, `ALL` — are never tou
 ## Using it
 
 **Web UI** — `python -m webapp.app`, then tick the categories and hit *Obfuscate
-& download*. Check *"produce a reversible mapping file"* to get a `.zip` with the
-scrubbed config, the `original → replacement` map, and a summary.
+& download*. Under *Options* you can choose *"external IPs only"* (keep
+LAN/private addresses) and *"produce a reversible mapping file"* — the latter
+gives a `.zip` with the scrubbed config, the `original → replacement` map, and a
+summary.
 
 **CLI**
 
@@ -107,6 +111,9 @@ python -m fortiobfuscator.cli config.conf -o out.conf -m map.json --summary
 
 # turn categories off
 python -m fortiobfuscator.cli config.conf -o out.conf --no-ipv6 --no-comment --no-policy
+
+# scrub only external (public) IPs, keep LAN/private addresses
+python -m fortiobfuscator.cli config.conf -o out.conf --public-ips-only
 
 # stdin → stdout
 cat config.conf | python -m fortiobfuscator.cli - > out.conf

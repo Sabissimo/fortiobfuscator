@@ -57,6 +57,10 @@
       <section class="card">
         <h2>4 &middot; Options</h2>
         <label class="chk">
+          <input type="checkbox" name="public_ips_only">
+          <span>Obfuscate only external (public) IPs &mdash; keep private/local addresses (RFC1918, loopback, link-local)</span>
+        </label>
+        <label class="chk">
           <input type="checkbox" name="emit_mapping">
           <span>Also produce a reversible mapping file (downloads as a .zip)</span>
         </label>

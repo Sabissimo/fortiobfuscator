@@ -46,6 +46,12 @@ def build_parser() -> argparse.ArgumentParser:
             help=f"do not rename {cat.label} object names",
         )
     p.add_argument(
+        "--public-ips-only",
+        dest="public_ips_only",
+        action="store_true",
+        help="obfuscate only external (public) IPs; keep private/local addresses (RFC1918, loopback, link-local, ULA)",
+    )
+    p.add_argument(
         "--summary",
         action="store_true",
         help="print a substitution summary to stderr",
@@ -56,7 +62,12 @@ def build_parser() -> argparse.ArgumentParser:
 def options_from_args(args: argparse.Namespace) -> Options:
     types = {k for k in ALL_TYPE_KEYS if not getattr(args, f"no_{k}", False)}
     cats = {k for k in ALL_CATEGORY_KEYS if not getattr(args, f"no_{k}", False)}
-    return Options(types=types, categories=cats, emit_mapping=bool(args.mapping))
+    return Options(
+        types=types,
+        categories=cats,
+        emit_mapping=bool(args.mapping),
+        public_ips_only=bool(getattr(args, "public_ips_only", False)),
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
