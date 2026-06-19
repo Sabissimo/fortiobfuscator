@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FortiObfuscator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <h1>Forti<span>Obfuscator</span></h1>
+      <p class="sub">Strip sensitive data from a FortiGate config &mdash; entirely on this machine.</p>
+    </header>
+
+    <form action="{{ url_for('do_obfuscate') }}" method="post" enctype="multipart/form-data">
+      <section class="card">
+        <h2>1 &middot; Config file</h2>
+        <label class="file">
+          <input type="file" name="config" accept=".conf,.txt,.cfg,text/plain" required>
+          <span>Choose a FortiGate <code>.conf</code> file&hellip;</span>
+        </label>
+      </section>
+
+      <div class="cols">
+        <section class="card">
+          <div class="card-head">
+            <h2>2 &middot; Types</h2>
+            <button type="button" class="link toggle-all" data-group="type">toggle all</button>
+          </div>
+          <div class="checks" data-group="type">
+            {% for key, label in type_toggles %}
+            <label class="chk">
+              <input type="checkbox" name="type_{{ key }}" checked>
+              <span>{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2>3 &middot; Object names</h2>
+            <button type="button" class="link toggle-all" data-group="cat">toggle all</button>
+          </div>
+          <div class="checks" data-group="cat">
+            {% for cat in categories %}
+            <label class="chk">
+              <input type="checkbox" name="cat_{{ cat.key }}" checked>
+              <span>{{ cat.label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </section>
+      </div>
+
+      <section class="card">
+        <h2>4 &middot; Options</h2>
+        <label class="chk">
+          <input type="checkbox" name="emit_mapping">
+          <span>Also produce a reversible mapping file (downloads as a .zip)</span>
+        </label>
+        <p class="warn">&#9888; The mapping file reveals the original values. Keep it local &mdash; never share it alongside the scrubbed config.</p>
+      </section>
+
+      <button type="submit" class="go">Obfuscate &amp; download</button>
+    </form>
+
+    <footer>
+      <p>Runs at <code>127.0.0.1</code>. Files are processed in memory and never stored or sent anywhere.</p>
+    </footer>
+  </main>
+
+  <script>
+    // Reflect chosen file name.
+    document.querySelector('input[type=file]').addEventListener('change', function (e) {
+      const span = e.target.closest('label').querySelector('span');
+      span.textContent = e.target.files.length ? e.target.files[0].name : 'Choose a FortiGate .conf file…';
+    });
+    // Toggle-all per group.
+    document.querySelectorAll('.toggle-all').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const boxes = document.querySelectorAll('.checks[data-group="' + btn.dataset.group + '"] input[type=checkbox]');
+        const anyOn = Array.from(boxes).some(b => b.checked);
+        boxes.forEach(b => b.checked = !anyOn);
+      });
+    });
+  </script>
+</body>
+</html>
