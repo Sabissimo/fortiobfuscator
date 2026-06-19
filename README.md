@@ -135,6 +135,15 @@ it strictly local and never share it alongside the scrubbed config.
 
 ---
 
+## Documentation
+
+- [CLAUDE.md](CLAUDE.md) — onboarding context to pick the project up cold
+  (commands, mental model, invariants).
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — the two-pass design in detail.
+- [docs/EXTENDING.md](docs/EXTENDING.md) — how to add new categories / value
+  types (mostly a data edit in `rules.py`).
+- [CHANGELOG.md](CHANGELOG.md) — version history.
+
 ## Development & tests
 
 ```bash
