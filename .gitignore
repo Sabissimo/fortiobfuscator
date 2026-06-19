@@ -24,6 +24,7 @@ Thumbs.db
 # Playwright MCP artifacts
 .playwright-mcp/
 *.png
+!screenshots/*.png
 
 # Local data — NEVER commit real configs or mapping files
 *.conf

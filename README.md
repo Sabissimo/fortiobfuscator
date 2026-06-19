@@ -1,182 +1,160 @@
 # FortiObfuscator
 
-Obfuscate sensitive data in a **FortiGate / FortiOS** configuration file —
-**entirely on your own machine**. No cloud, no uploads, no network calls.
+Strip the sensitive data out of a FortiGate config before you share it. Secrets,
+IPs, MACs, FQDNs, SSIDs and every object name get rewritten — consistently, so an
+address renamed in its definition is renamed in every policy and group that uses
+it, and the file still parses.
 
-Use it to safely share a config with vendor/TAC, in documentation, or in
-training material without leaking secrets, IPs, hostnames, or object names.
+FortiOS configs. Pure Python. Runs entirely on your machine — nothing is uploaded.
 
-The obfuscation is **consistent and structurally valid**: an object renamed to
-`ADDR_1` is renamed *everywhere it is referenced* (policies, groups, VIPs …),
-and every IP/MAC/FQDN maps the same way each time it appears — so the scrubbed
-config still parses and analyses cleanly.
+![python](https://img.shields.io/badge/python-3.10%2B-3776AB)
+![license](https://img.shields.io/badge/license-MIT-3FB950)
+![FortiGate](https://img.shields.io/badge/FortiGate-config-EE3124)
+![runs](https://img.shields.io/badge/100%25-local-D29922)
 
----
+![Web UI](screenshots/ui.png)
 
-## What it obfuscates
+## Why
 
-**Types** (global)
+Every time someone needs to send a FortiGate config to TAC, a vendor, a forum, or
+into a doc, the same chore comes up: scrub the PSKs, the admin password hashes,
+the public IPs, the customer's internal naming — by hand, in a few thousand lines,
+hoping you didn't miss one. Miss a single `set psksecret` and you've leaked a VPN
+key.
 
-| Type | Behaviour |
-|---|---|
-| IPv4 | All addresses (unicast/multicast/private/ranges) → consistent fakes. Subnet masks and `0.0.0.0` are preserved. |
-| IPv6 | All addresses → consistent fakes (`2001:db8::/32`). |
-| FQDN | `set fqdn` / `set wildcard-fqdn` values → fake domains (wildcard `*.` preserved). |
-| MAC | All MAC addresses → consistent locally-administered fakes. |
-| Password / PSK | `ENC <blob>` → `ENC 012345678`. |
-| SSID | `set ssid` → `SSID_<n>`. |
-| Comment | `set comment` / `set comments` lines removed. |
-| Certificate / key | Multi-line `private-key` / cert PEM blocks → redacted. |
+This does that pass for you. Point it at a `.conf`, pick what to scrub, and it
+rewrites everything **consistently** — the same IP becomes the same fake IP
+everywhere, `Web_Server` becomes `ADDR_1` in its definition *and* in every policy
+that references it — so the result is safe to share but still reads and parses
+like a real config.
 
-**Object names** (renamed consistently, default/reserved names kept as-is)
+It runs locally with no dependencies for the CLI, and a one-command local web UI
+if you'd rather click.
 
-`Interface → INTERFACE_n` · `Zone → ZONE_n` · `Address → ADDR_n` ·
-`Address Group → ADDRGRP_n` · `IP Pool → IPPOOL_n` · `VIP → VIP_n` ·
-`VIP Group → VIPGRP_n` · `Service → SERV_n` · `Service Group → SERVGRP_n` ·
-`VPN (phase1/2) → VPN_n` / `(phase1/2-interface) → VPN_INTF_n` ·
-`Policy (set name) → POLICY_n`
+## Install
 
-Default names such as `port1`, `wan1`, `dmz`, `all`, `any`, `ALL` are never
-changed.
-
-Every category above is **individually toggleable** in both the web UI and the
-CLI.
-
----
-
-## Installation
-
-Requires **Python 3.10+**. The core engine and CLI use only the standard
-library; **Flask** is needed only for the optional web UI.
-
-### 1. Get the code
+Python 3.10+. The CLI is pure standard library; the web UI needs Flask.
 
 ```bash
 git clone https://github.com/Sabissimo/fortiobfuscator.git
 cd fortiobfuscator
-```
 
-### 2. (Recommended) Create a virtual environment
-
-**Windows (PowerShell):**
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-**macOS / Linux:**
-```bash
 python3 -m venv .venv
-source .venv/bin/activate
-```
+source .venv/bin/activate          # Linux / macOS
+# .venv\Scripts\activate           # Windows
 
-### 3. Install dependencies (only needed for the web UI)
-
-```bash
-pip install -r requirements.txt
-```
-
-> Using the CLI only? You can skip this step — the CLI has no dependencies.
-
----
-
-## Usage
-
-### Web UI (point-and-click)
-
-```bash
+pip install -r requirements.txt    # only needed for the web UI
 python -m webapp.app
 ```
 
-Open **http://127.0.0.1:5000** in your browser, choose a `.conf` file, tick the
-categories you want, and click **Obfuscate & download**. Tick *"produce a
-reversible mapping file"* to get a `.zip` containing the scrubbed config, the
-`original → replacement` mapping, and a summary.
+Open `http://127.0.0.1:5000`. It binds to localhost only — your config is
+processed in memory and never written to disk server-side or sent anywhere.
 
-The server binds to `127.0.0.1` only; files are processed in memory and never
-written to disk server-side.
+> Just want the command line? Skip the `pip install` — the CLI has **zero
+> dependencies**:
+> ```bash
+> python -m fortiobfuscator.cli config.conf -o config_obfuscated.conf
+> ```
 
-### Command line
+### Updating
 
 ```bash
-# Scrub everything, write to a file
-python -m fortiobfuscator.cli config.conf -o config_obfuscated.conf
+git pull
+```
 
-# Print a summary, and also save a reversible mapping (keep it local!)
+That's it — no build step. Make sure your clone's `origin` points at
+`github.com/Sabissimo/fortiobfuscator` (`git remote -v`).
+
+## What it obfuscates
+
+Every item below is an independent toggle in both the UI and the CLI.
+
+**Values (global, consistent)**
+
+- **IPv4 / IPv6** — every address (unicast, multicast, private, ranges) →
+  consistent fakes. Subnet masks and `0.0.0.0` are left intact.
+- **FQDN / Wildcard-FQDN** — `set fqdn` / `set wildcard-fqdn` → fake domains
+  (the leading `*.` is kept).
+- **MAC** — every MAC → a consistent locally-administered fake.
+- **Passwords / PSKs** — `ENC <blob>` → `ENC 012345678`.
+- **SSID** — `set ssid` → `SSID_n`.
+- **Comments** — `set comment` / `set comments` lines removed.
+- **Certificates / private keys** — multi-line PEM blocks redacted.
+
+**Object names (renamed everywhere they're referenced)**
+
+Interface · Zone · Address · Address Group · IP Pool · VIP · VIP Group · Service ·
+Service Group · VPN (phase1/2 → `VPN_`, interface phases → `VPN_INTF_`) · Policy
+(`set name`).
+
+Each becomes `PREFIX_n` (`ADDR_1`, `INTERFACE_2`, `POLICY_1`, …). Default and
+reserved names — `port1`, `wan1`, `dmz`, `all`, `any`, `ALL` — are never touched.
+
+## Using it
+
+**Web UI** — `python -m webapp.app`, then tick the categories and hit *Obfuscate
+& download*. Check *"produce a reversible mapping file"* to get a `.zip` with the
+scrubbed config, the `original → replacement` map, and a summary.
+
+**CLI**
+
+```bash
+# scrub everything
+python -m fortiobfuscator.cli config.conf -o out.conf
+
+# summary + reversible mapping (keep the map local!)
 python -m fortiobfuscator.cli config.conf -o out.conf -m map.json --summary
 
-# Disable specific categories
+# turn categories off
 python -m fortiobfuscator.cli config.conf -o out.conf --no-ipv6 --no-comment --no-policy
 
-# Pipe via stdin/stdout
+# stdin → stdout
 cat config.conf | python -m fortiobfuscator.cli - > out.conf
 ```
 
-Run `python -m fortiobfuscator.cli --help` for every `--no-<category>` flag.
+`python -m fortiobfuscator.cli --help` lists every `--no-<category>` flag.
 
-### As a library
+**Library**
 
 ```python
 from fortiobfuscator import obfuscate, Options
-
-result = obfuscate(open("config.conf").read(), Options.all_enabled(emit_mapping=True))
-print(result.text)            # scrubbed config
-print(result.report.as_dict())  # what changed
-print(result.mapping)         # original -> replacement (if emit_mapping)
+res = obfuscate(open("config.conf").read(), Options.all_enabled(emit_mapping=True))
+res.text            # scrubbed config
+res.report.as_dict()  # what changed
+res.mapping         # original -> replacement
 ```
 
----
+The mapping file makes a run **reversible** — and so it reveals every original
+value. Keep it strictly local; never ship it next to the scrubbed config.
 
-## About the mapping file
+## Honest caveats
 
-The optional mapping file makes the obfuscation **reversible** and lets you map
-analysis results back to real values. **It reveals every original value** — keep
-it strictly local and never share it alongside the scrubbed config.
+- FortiOS is huge and shifts between versions. The known secret-bearing fields and
+  object types are covered, but an exotic field this tool doesn't know about could
+  slip through. **Eyeball the output before you share it.** Adding a field is a
+  one-line change in `rules.py` — see [docs/EXTENDING.md](docs/EXTENDING.md).
+- Only `set comment` / `set comments` lines are removed. Free-text like
+  `set description` is left intact by design.
+- IPs are mapped per unique address; subnet *relationships* aren't preserved
+  (validity and structure are). If you need topology-faithful remapping, open an
+  issue.
 
----
+## Contributing
 
-## Documentation
-
-- [CLAUDE.md](CLAUDE.md) — onboarding context to pick the project up cold
-  (commands, mental model, invariants).
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — the two-pass design in detail.
-- [docs/EXTENDING.md](docs/EXTENDING.md) — how to add new categories / value
-  types (mostly a data edit in `rules.py`).
-- [CHANGELOG.md](CHANGELOG.md) — version history.
-
-## Development & tests
-
-```bash
-pip install pytest
-python -m pytest tests/ -q
-```
-
----
-
-## Project layout
-
-```
-fortiobfuscator/      core engine (stdlib only)
-  rules.py            regexes, reserved names, category config
-  mapping.py          consistent replacement stores
-  parser.py           pass 1 — collect object names
-  engine.py           pass 2 — apply substitutions  (entry: obfuscate)
-  report.py           per-category summary
-  cli.py              command-line front end
-webapp/               optional local Flask UI
-tests/                pytest suite + sample.conf fixture
-```
-
----
-
-## Security notes
-
-- 100% local: no telemetry, no outbound requests, nothing uploaded.
-- The web server listens on `127.0.0.1` only and processes uploads in memory.
-- Always eyeball the output. FortiOS is large and version-variant; if your
-  config has an exotic field this tool doesn't know about, review before
-  sharing. Issues and PRs welcome.
+Adding a category or value type is almost entirely a data edit in `rules.py` — it
+then shows up in the CLI and UI automatically. See
+[docs/EXTENDING.md](docs/EXTENDING.md), and [CLAUDE.md](CLAUDE.md) /
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the design. Tests:
+`python -m pytest tests/ -q`.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — use it, fork it, ship it.
+
+## Architecture
+
+`config text` → **pass 1** (`parser.collect_object_names`: stack-walk the
+`config`/`edit` tree → name map) → **pass 2** (`engine.obfuscate`: ordered
+per-line rewrite via regexes + `MappingStore`) → scrubbed text (+ optional JSON
+map). Rules are data in `rules.py`; the CLI and web UI derive their toggles from
+it. Full write-up in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
